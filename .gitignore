@@ -1,0 +1,52 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env*
+!.env.example
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# Ralph Wiggum state
+.ralph/
+
+# Database + uploads
+data/
+*.db
+*.db-shm
+*.db-wal
+uploads/
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+screenshots/
+.playwright-mcp/
+.antigravitycli/
+
+# Editor settings (personal)
+.vscode/

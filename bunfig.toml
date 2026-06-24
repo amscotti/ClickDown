@@ -1,0 +1,11 @@
+[test]
+# Coverage is opt-in via the `--coverage` flag (see `bun run test:coverage`).
+# Reporters: "text" prints the table to stdout, "lcov" writes coverage/lcov.info
+# (consume it with VS Code's "Coverage Gutters" extension or `genhtml`).
+#
+# No coverageThreshold is set: Bun enforces it PER-FILE, and src/index.ts (the
+# HTTP router) is measured via in-process integration tests and is still being
+# grown, so a global floor would fail the whole run on that one file. Use the
+# report to track coverage instead.
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"

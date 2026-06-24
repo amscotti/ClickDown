@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS columns (
+    id TEXT PRIMARY KEY,
+    board_id TEXT NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    wip_limit INTEGER,
+    color TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

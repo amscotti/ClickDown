@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run xss:scan
+      - run: bun run lint
+      - run: bun run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium firefox
+      - run: bun run test:e2e
+        env:
+          CI: 'true'
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+      - name: Build image
+        run: docker build -t clickdown-smoke .
+      - name: Start container and wait for readiness
+        run: |
+          docker run --rm -d --name clickdown-smoke -p 3002:3000 clickdown-smoke
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3002/ready; then exit 0; fi
+            sleep 1
+          done
+          docker logs clickdown-smoke
+          exit 1
+      - name: Health check
+        run: curl -sf http://localhost:3002/health
+      - name: Cleanup
+        if: always()
+        run: docker rm -f clickdown-smoke || true
