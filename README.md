@@ -1,5 +1,9 @@
 # ClickDown
 
+<p align="center">
+  <img src="screenshots/board.png" alt="ClickDown board — Kanban task manager" width="1280" />
+</p>
+
 A fast, lightweight, multi-team **Kanban task manager** built on [Bun](https://bun.sh) and SQLite. ClickDown uses a hypermedia-driven architecture — server-side rendering with [HTMX](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/) — to deliver a responsive, app-like experience without a heavy client-side framework or build step.
 
 It is **local-first**: a single Bun process provides the database (embedded SQLite), file storage (`data/uploads/`), and real-time updates (in-process WebSockets). No CDN, cloud service, or external broker is required — the app runs fully offline or on a LAN.

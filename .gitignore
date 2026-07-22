@@ -44,7 +44,8 @@ uploads/
 test-results/
 playwright-report/
 blob-report/
-screenshots/
+screenshots/*
+!screenshots/board.png
 .playwright-mcp/
 .antigravitycli/
 
