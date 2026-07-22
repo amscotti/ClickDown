@@ -108,9 +108,13 @@ test.describe('ClickDown Comprehensive E2E Visual & Interaction Lifecycle', () =
     await page.fill('#email', updatedEmail);
     await page.fill('#profileCurrentPassword', testPassword);
 
-    const profileSaveRedirect = page.waitForNavigation();
+    const profileSaveResponse = page.waitForResponse(
+      (r) => r.url().endsWith('/profile') && r.request().method() === 'POST'
+    );
     await page.click('button[type="submit"]:has-text("Save Profile Details")');
-    await profileSaveRedirect;
+    await profileSaveResponse;
+    // The flash toast only renders after the HX-Redirect completes.
+    await expect(page.locator('.toast')).toContainText('Profile updated');
 
     // Assert profile details updated in the header and sidebar!
     await expect(page.locator('.user-dropdown-trigger')).toContainText(updatedDisplayName);
@@ -124,9 +128,12 @@ test.describe('ClickDown Comprehensive E2E Visual & Interaction Lifecycle', () =
     await page.fill('#password', newPassword);
     await page.fill('#confirmPassword', newPassword);
 
-    const passwordSaveRedirect = page.waitForNavigation();
+    const passwordSaveResponse = page.waitForResponse(
+      (r) => r.url().endsWith('/profile') && r.request().method() === 'POST'
+    );
     await page.click('button[type="submit"]:has-text("Update Password")');
-    await passwordSaveRedirect;
+    await passwordSaveResponse;
+    await expect(page.locator('.toast')).toContainText('Profile updated');
 
     // 2d. TRAVEL STATE & RE-AUTH: Logout and verify we can log back in with the new credentials!
     await page.click('.user-dropdown-trigger');

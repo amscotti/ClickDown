@@ -56,8 +56,13 @@ test.describe('New feature: markdown descriptions', () => {
     const modal = page.locator('dialog[open]');
     await expect(modal).toBeVisible();
 
-    // Switch to Preview — markdown should render
+    // Switch to Preview — markdown should render. Wait for the preview POST
+    // (listener registered before the click to avoid a CI race).
+    const previewResponse = page.waitForResponse(
+      (r) => r.url().includes('/markdown-preview') && r.request().method() === 'POST'
+    );
     await modal.locator('button.md-toggle', { hasText: 'Preview' }).click();
+    await previewResponse;
     const preview = modal.locator('.markdown-preview');
     await expect(preview).toBeVisible();
     await expect(preview.locator('strong')).toHaveText('bold');
@@ -76,7 +81,11 @@ test.describe('New feature: markdown descriptions', () => {
     await expect(page.locator('.task-card').first()).toBeVisible({ timeout: 10000 });
     await page.locator('.task-card').first().click();
     const modal = page.locator('dialog[open]');
+    const previewResponse = page.waitForResponse(
+      (r) => r.url().includes('/markdown-preview') && r.request().method() === 'POST'
+    );
     await modal.locator('button.md-toggle', { hasText: 'Preview' }).click();
+    await previewResponse;
     const preview = modal.locator('.markdown-preview');
     // The script tag must be escaped (not live), with no executable element
     const html = await preview.innerHTML();
@@ -227,7 +236,7 @@ test.describe('New feature: duplicate + bulk delete tasks', () => {
     const duplicateResponse = page.waitForResponse(
       (response) => response.url().includes('/duplicate') && response.request().method() === 'POST'
     );
-    const duplicateNavigation = page.waitForNavigation();
+    const duplicateNavigation = page.waitForURL(/\/boards\//);
     await modal.locator('button:has-text("Duplicate")').click();
     await duplicateResponse;
     await duplicateNavigation;

@@ -84,17 +84,17 @@ test.describe('ClickDown E2E Kanban Task Filtering', () => {
     await expect(otherCard).toBeVisible();
 
     // 6. TOGGLE FILTER ON: Check "My tasks only"
-    await filterToggle.click();
-
-    // Wait for the board GET (not the column-tasks GETs that follow).
-    // The board page GET URL ends with the board slug, not /tasks.
-    await page.waitForResponse(
+    // Register the response listener BEFORE clicking so a fast response can't
+    // complete before the listener is attached (CI flakiness fix).
+    const filterOnResponse = page.waitForResponse(
       (response) =>
         response.url().includes(`/boards/`) &&
         !response.url().includes('/tasks') &&
         !response.url().includes('/columns') &&
         response.request().method() === 'GET'
     );
+    await filterToggle.click();
+    await filterOnResponse;
 
     // Re-locate elements after swap
     const activeFilterToggle = page.locator('.filter-toggle input[type="checkbox"]');
@@ -114,14 +114,15 @@ test.describe('ClickDown E2E Kanban Task Filtering', () => {
     await expect(activeToDoColumn.locator('.task-count')).toContainText('1');
 
     // 7. TOGGLE FILTER OFF: Uncheck "My tasks only"
-    await activeFilterToggle.click();
-    await page.waitForResponse(
+    const filterOffResponse = page.waitForResponse(
       (response) =>
         response.url().includes(`/boards/`) &&
         !response.url().includes('/tasks') &&
         !response.url().includes('/columns') &&
         response.request().method() === 'GET'
     );
+    await activeFilterToggle.click();
+    await filterOffResponse;
 
     // Re-locate
     const inactiveFilterToggle = page.locator('.filter-toggle input[type="checkbox"]');
