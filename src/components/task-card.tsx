@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from '@kitajs/html';
 import { formatDateOnly, isDateOverdue, toDateOnly } from '../utils/date';
-import { alpine } from '../utils/html';
 
 interface TaskAssignee {
   displayName: string;
@@ -44,20 +43,12 @@ export function TaskCard({ task }: PropsWithChildren<TaskCardProps>) {
         tabindex="0"
         role="button"
         aria-label={`Task: ${task.title}`}
-        {...alpine({
-          '@dragstart': `handleDragStart($event, '${task.id}')`,
-          '@dragend': 'handleDragEnd($event)',
-          '@click': `if (!window.isDragging && !document.querySelector('.kanban-board.bulk-mode')) htmx.ajax('GET', '/tasks/${task.id}', { target: '#modal-container' })`,
-          '@keydown.enter': `if (!document.querySelector('.kanban-board.bulk-mode')) htmx.ajax('GET', '/tasks/${task.id}', { target: '#modal-container' })`,
-          '@keydown.space.prevent': `if (!document.querySelector('.kanban-board.bulk-mode')) htmx.ajax('GET', '/tasks/${task.id}', { target: '#modal-container' })`,
-        })}
       >
         <input
           type="checkbox"
           class="bulk-select-cb"
           data-bulk-id={task.id}
           aria-label="Select task for bulk actions"
-          onclick="event.stopPropagation()"
         />
         <div class="task-card-content">
           <header class="task-card-header">
@@ -87,7 +78,23 @@ export function TaskCard({ task }: PropsWithChildren<TaskCardProps>) {
               </div>
             ) : (
               <div class="task-assignee unassigned" title="Unassigned">
-                <div class="avatar-placeholder-small"></div>
+                <div class="avatar-placeholder-small" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
               </div>
             )}
 

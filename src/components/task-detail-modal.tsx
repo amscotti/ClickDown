@@ -2,6 +2,7 @@ import type { PropsWithChildren } from '@kitajs/html';
 import { formatDateOnly, isDateOverdue, localToday, toDateOnly } from '../utils/date';
 import { alpine } from '../utils/html';
 import { ChecklistSection } from './checklist';
+import { TaskAttachmentItem, TaskCommentItem, TaskLabelsList } from './fragments/task-extras';
 import { Modal } from './modal';
 
 interface TaskDetailMember {
@@ -76,7 +77,7 @@ export function TaskDetailModal({
   void priorityOrder;
 
   return (
-    <Modal title="Task Details" closeHandler="closeTaskModal(this.closest('dialog'))">
+    <Modal title="Task Details" closeMode="flush">
       <div class="task-detail-content">
         {/* Title with inline edit */}
         <div class="task-detail-field">
@@ -87,7 +88,7 @@ export function TaskDetailModal({
             value={task.title}
             hx-patch={`/tasks/${task.id}/title`}
             hx-target="#taskTitleInput"
-            hx-trigger="change, keyup[key=='Enter']"
+            hx-trigger="change"
             name="title"
             required
             minlength="2"
@@ -107,9 +108,9 @@ export function TaskDetailModal({
           >
             <button
               type="button"
-              class="md-toggle"
+              class="md-toggle active"
               {...alpine({
-                ':class': "descMode==='write' ? 'active' : ''",
+                ':class': "{ active: descMode === 'write' }",
                 '@click': "descMode='write'",
               })}
             >
@@ -119,7 +120,7 @@ export function TaskDetailModal({
               type="button"
               class="md-toggle"
               {...alpine({
-                ':class': "descMode==='preview' ? 'active' : ''",
+                ':class': "{ active: descMode === 'preview' }",
                 '@click': "descMode='preview'",
               })}
               hx-post="/markdown-preview"
@@ -244,23 +245,7 @@ export function TaskDetailModal({
         {/* Labels */}
         <div class="task-detail-field">
           <span class="field-heading">Labels</span>
-          <div id="task-labels-list" class="task-labels">
-            {labels.map((l) => (
-              <span class="task-label" style={`background:${l.color}`}>
-                <span safe>{l.name}</span>
-                <button
-                  type="button"
-                  class="label-remove"
-                  hx-delete={`/tasks/${task.id}/labels/${l.id}`}
-                  hx-target="closest .task-label"
-                  hx-swap="outerHTML"
-                  aria-label="Remove label"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
+          <TaskLabelsList taskId={task.id} labels={labels} />
           <form
             method="post"
             class="label-add-form"
@@ -297,21 +282,7 @@ export function TaskDetailModal({
           <span class="field-heading">Attachments</span>
           <ul id="task-attachments" class="task-attachments">
             {attachments.map((a) => (
-              <li id={`att-${a.id}`}>
-                <a safe href={`/attachments/${a.id}/download`}>
-                  {a.filename}
-                </a>
-                <small>({Math.round(a.sizeBytes / 1024)} KB)</small>
-                <button
-                  type="button"
-                  class="secondary"
-                  hx-delete={`/attachments/${a.id}`}
-                  hx-target={`#att-${a.id}`}
-                  hx-swap="outerHTML"
-                >
-                  Remove
-                </button>
-              </li>
+              <TaskAttachmentItem attachment={a} />
             ))}
           </ul>
           <form
@@ -334,24 +305,7 @@ export function TaskDetailModal({
           <span class="field-heading">Comments</span>
           <ul id="task-comments" class="task-comments">
             {comments.map((c) => (
-              <li id={`comment-${c.id}`} class="task-comment">
-                <strong safe>{c.userName}</strong>
-                <p safe>{c.body}</p>
-                <small safe>{new Date(c.createdAt).toLocaleString()}</small>
-                {(canModerate || c.userId === currentUserId) && (
-                  <button
-                    type="button"
-                    class="secondary outline comment-delete"
-                    hx-post={`/comments/${c.id}/delete`}
-                    hx-target={`#comment-${c.id}`}
-                    hx-swap="outerHTML"
-                    hx-confirm="Delete this comment?"
-                    aria-label="Delete comment"
-                  >
-                    Delete
-                  </button>
-                )}
-              </li>
+              <TaskCommentItem comment={c} canDelete={canModerate || c.userId === currentUserId} />
             ))}
           </ul>
           <form
@@ -377,7 +331,7 @@ export function TaskDetailModal({
         {/* Activity log */}
         {activity.length > 0 && (
           <div class="task-detail-field">
-            <span>Activity</span>
+            <span class="field-heading">Activity</span>
             <ul class="activity-log">
               {activity.map((entry) => (
                 <li class="activity-entry">
@@ -401,8 +355,7 @@ export function TaskDetailModal({
         {/* Metadata (read-only) */}
         <div class="task-detail-meta">
           <small safe>
-            Created by {task.creatorName}
-            {new Date(task.createdAt).toLocaleDateString()}
+            Created by {task.creatorName} on {new Date(task.createdAt).toLocaleDateString()}
           </small>
           <small safe class="task-id-ref">
             Task ID: {task.id}
@@ -452,32 +405,19 @@ export function TaskDetailModal({
         >
           Duplicate
         </button>
-        <button type="button" class="secondary" data-task-id={task.id} onclick="copyTaskLink(this)">
+        <button
+          type="button"
+          class="secondary"
+          data-task-id={task.id}
+          data-copy-path={`/tasks/${task.id}`}
+          data-copy-prompt="Copy this link:"
+        >
           Copy Link
         </button>
-        <button type="button" class="secondary" onclick="closeTaskModal(this.closest('dialog'))">
+        <button type="button" class="secondary" data-modal-close="flush">
           Close
         </button>
       </div>
-
-      <script>{`
-        function copyTaskLink(btn) {
-          var taskId = btn.getAttribute('data-task-id');
-          var link = window.location.origin + '/tasks/' + taskId;
-          var done = function () {
-            var original = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(function () { btn.textContent = original; }, 2000);
-          };
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link).then(done).catch(function () {
-              window.prompt('Copy this link:', link);
-            });
-          } else {
-            window.prompt('Copy this link:', link);
-          }
-        }
-      `}</script>
     </Modal>
   );
 }

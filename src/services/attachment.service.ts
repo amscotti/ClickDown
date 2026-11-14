@@ -1,5 +1,5 @@
 import { mkdirSync, renameSync, unlinkSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { nanoid } from 'nanoid';
 import { db } from '../config/database';
 
@@ -16,6 +16,7 @@ export interface TaskAttachment {
 }
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'data', 'uploads');
+const SAFE_EXT_RE = /^\.[a-zA-Z0-9]{1,10}$/;
 
 export function ensureUploadDir(): string {
   mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -23,7 +24,13 @@ export function ensureUploadDir(): string {
 }
 
 export function attachmentPath(storedName: string): string {
-  return join(ensureUploadDir(), storedName);
+  const dir = resolve(ensureUploadDir());
+  const target = resolve(dir, storedName);
+  const rel = relative(dir, target);
+  if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error('Invalid attachment path');
+  }
+  return target;
 }
 
 export class AttachmentService {
@@ -62,7 +69,8 @@ export class AttachmentService {
 
   async add(taskId: string, userId: string, file: File): Promise<TaskAttachment> {
     const id = nanoid();
-    const ext = extname(file.name);
+    const rawExt = extname(file.name);
+    const ext = SAFE_EXT_RE.test(rawExt) ? rawExt : '';
     const storedName = `${id}${ext}`;
     const dir = ensureUploadDir();
     const dest = join(dir, storedName);

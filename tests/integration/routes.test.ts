@@ -993,6 +993,68 @@ describe('Extended route integration tests', () => {
       expect(res.status).toBe(200);
       const body = await res.text();
       expect(body).toContain(`/teams/${extTeamSlug}/join?token=`);
+      expect(body).toContain('hx-target="#invite-link-section"');
+      expect(body).toContain('hx-swap="outerHTML"');
+    });
+
+    test('POST invite regenerate swaps #invite-link-section with updated token and Copy button', async () => {
+      const tokenBefore = teamService.getOrCreateInviteToken(extTeamId);
+      const res = await exec(
+        form(`/teams/${extTeamSlug}/invite/regenerate`, {}, { cookie: extSession })
+      );
+      expect(res.status).toBe(200);
+      const body = await res.text();
+      expect(body).toContain('id="invite-link-section"');
+      expect(body).not.toContain('id="invite-section"');
+      expect(body).toContain('data-copy-target="#invite-link"');
+      expect(body).toContain('Invite link regenerated');
+      expect(body).not.toContain(encodeURIComponent(tokenBefore));
+    });
+
+    test('POST create task rejects mismatched column or non-member assignee with JSX ErrorArticle', async () => {
+      await exec(form('/teams', { name: 'Other Team Error Check' }, { cookie: extSession }));
+      await exec(
+        form(
+          '/teams/other-team-error-check/boards',
+          { name: 'Other Board' },
+          { cookie: extSession }
+        )
+      );
+      const otherBoardRow = testDb
+        .prepare("SELECT id FROM boards WHERE slug = 'other-board'")
+        .get() as { id: string } | null;
+      if (!otherBoardRow) throw new Error('Expected other board');
+      const otherCol = testDb
+        .prepare('SELECT id FROM columns WHERE board_id = ? ORDER BY position')
+        .get(otherBoardRow.id) as { id: string } | null;
+      if (!otherCol) throw new Error('Expected column');
+
+      const badColRes = await exec(
+        form(
+          `/teams/${extTeamSlug}/boards/${extBoardSlug}/tasks`,
+          { columnId: otherCol.id, title: 'Wrong Column Task' },
+          { cookie: extSession }
+        )
+      );
+      expect(badColRes.status).toBe(400);
+      const badColHtml = await badColRes.text();
+      expect(badColHtml).toContain('class="error-message"');
+      expect(badColHtml).toContain('role="alert"');
+      expect(badColHtml).toContain('Invalid column');
+
+      const outsiderId = insertUser('notamember@example.com', 'Outsider');
+      const badAssigneeRes = await exec(
+        form(
+          `/teams/${extTeamSlug}/boards/${extBoardSlug}/tasks`,
+          { columnId: extColumnId, title: 'Bad Assignee Task', assigneeId: outsiderId },
+          { cookie: extSession }
+        )
+      );
+      expect(badAssigneeRes.status).toBe(400);
+      const badAssigneeHtml = await badAssigneeRes.text();
+      expect(badAssigneeHtml).toContain('class="error-message"');
+      expect(badAssigneeHtml).toContain('role="alert"');
+      expect(badAssigneeHtml).toContain('Assignee must be a team member');
     });
 
     test('GET join page without token is rejected', async () => {

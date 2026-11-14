@@ -2,9 +2,9 @@ import type { PropsWithChildren } from '@kitajs/html';
 
 export function Modal({
   title,
-  closeHandler,
+  closeMode = 'remove',
   children,
-}: PropsWithChildren<{ title: string; closeHandler?: string }>) {
+}: PropsWithChildren<{ title: string; closeMode?: 'remove' | 'flush' }>) {
   return (
     <dialog aria-labelledby="modal-title">
       <article>
@@ -14,11 +14,9 @@ export function Modal({
           </h3>
           <button
             type="button"
+            class="close"
             aria-label="Close"
-            onclick={
-              closeHandler ||
-              "const dialog = this.closest('dialog'); dialog.close(); dialog.remove();"
-            }
+            data-modal-close={closeMode}
           ></button>
         </header>
         {children}

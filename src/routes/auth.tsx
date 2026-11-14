@@ -7,8 +7,14 @@ import { disconnectSessionConnections } from '../realtime/handlers';
 import { loginSchema, registerSchema } from '../schemas';
 import { userService } from '../services/user.service';
 import { parseCookie } from '../utils/cookie';
-import { escapeHtml, safeRedirectPath } from '../utils/html';
-import { clearSessionCookie, clientIp, parseFormData, setSessionCookie } from '../utils/http';
+import { safeRedirectPath } from '../utils/html';
+import {
+  clearSessionCookie,
+  clientIp,
+  inlineErrorResponse,
+  parseFormData,
+  setSessionCookie,
+} from '../utils/http';
 import { logError } from '../utils/logger';
 import { checkRateLimit } from '../utils/rate-limit';
 import { validateBody } from '../utils/validation';
@@ -47,7 +53,7 @@ export async function handleAuthRoutes(
       });
     }
     const html = await (
-      <Layout title="Register">
+      <Layout title="Register" scripts={['/js/forms.js']}>
         <RegisterPage />
       </Layout>
     );
@@ -93,11 +99,7 @@ export async function handleAuthRoutes(
     } catch (error) {
       logError('auth', error);
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      const errors = `<p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>`;
-      return new Response(errors, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html', 'HX-Reswap': 'innerHTML' },
-      });
+      return inlineErrorResponse(errorMessage, { headers: { 'HX-Reswap': 'innerHTML' } });
     }
   }
 
@@ -155,11 +157,7 @@ export async function handleAuthRoutes(
     } catch (error) {
       logError('auth', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      const errors = `<p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>`;
-      return new Response(errors, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html', 'HX-Reswap': 'innerHTML' },
-      });
+      return inlineErrorResponse(errorMessage, { headers: { 'HX-Reswap': 'innerHTML' } });
     }
   }
 

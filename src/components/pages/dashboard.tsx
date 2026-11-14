@@ -324,8 +324,7 @@ export function DashboardPage({ user, teams, teamsWithBoards, assignedTasks }: D
                               class={`dashboard-task-item border-priority-${task.priority}`}
                               tabindex="0"
                               role="link"
-                              onclick={`window.location.href='/tasks/${task.id}'`}
-                              onkeydown={`if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='/tasks/${task.id}'}`}
+                              data-href={`/tasks/${task.id}`}
                               title="Open this task on its board"
                               style="cursor: pointer;"
                             >
@@ -343,7 +342,6 @@ export function DashboardPage({ user, teams, teamsWithBoards, assignedTasks }: D
                                   <span class="context-label">Board:</span>
                                   <a
                                     href={`/teams/${task.teamSlug}/boards/${task.boardSlug}`}
-                                    onclick="event.stopPropagation();"
                                     class="board-link"
                                   >
                                     <span safe>{task.boardName}</span>

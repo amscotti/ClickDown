@@ -75,7 +75,7 @@ It is **local-first**: a single Bun process provides the database (embedded SQLi
 
 ### Prerequisites
 
-[**Bun 1.3.14**](https://bun.sh) is the only requirement. Install or upgrade it if needed:
+[**Bun 1.4.4**](https://bun.sh) is the only requirement. Install or upgrade it if needed:
 
 ```bash
 curl -fsSL https://bun.sh/install | bash
@@ -224,7 +224,7 @@ migrations/               # SQL migrations (001–018, checksummed + auto-applie
 scripts/                  # migrate.ts, e2e-reset.ts
 tests/                    # unit, integration, e2e
 .github/workflows/        # CI: static gates, E2E, Docker smoke
-mise.toml                 # Bun 1.3.14 toolchain pin
+mise.toml                 # Bun 1.4.4 toolchain pin
 data/                     # SQLite DB + uploads (gitignored)
 ```
 

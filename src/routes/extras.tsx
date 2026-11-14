@@ -1,6 +1,12 @@
 /**
  * Comments, labels, attachments, invite regenerate, archived purge.
  */
+import {
+  TaskAttachmentItem,
+  TaskCommentItem,
+  TaskLabelsList,
+} from '../components/fragments/task-extras';
+import { TeamInviteSection } from '../components/fragments/team-invite';
 import { db } from '../config/database';
 import { realtime } from '../realtime/realtime';
 import { attachmentPath, attachmentService } from '../services/attachment.service';
@@ -10,7 +16,7 @@ import { labelService } from '../services/label.service';
 import { taskService } from '../services/task.service';
 import { teamService } from '../services/team.service';
 import { accessBoardAdmin, accessTask, accessTeamAdmin } from '../utils/access';
-import { escapeHtml, externalOrigin } from '../utils/html';
+import { externalOrigin } from '../utils/html';
 import {
   attachmentDisposition,
   createToastTrigger,
@@ -20,6 +26,25 @@ import {
 } from '../utils/http';
 import { logError } from '../utils/logger';
 import { checkRateLimit } from '../utils/rate-limit';
+
+const SAFE_ATTACHMENT_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/json',
+  'application/zip',
+  'application/octet-stream',
+]);
+
+/** Allowlist passive non-scriptable MIME types; coerce active or unknown types (e.g. SVG, HTML) to octet-stream. */
+export function safeAttachmentContentType(mimeType: string | null | undefined): string {
+  const base = (mimeType ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+  return SAFE_ATTACHMENT_MIME_TYPES.has(base) ? base : 'application/octet-stream';
+}
 
 /** Error feedback for sub-forms inside the task modal: keep the list/form DOM intact. */
 function modalError(message: string, status = 400): Response {
@@ -50,12 +75,7 @@ export async function handleExtraRoutes(
     if (access instanceof Response) return access;
     const token = teamService.regenerateInviteToken(access.team.id);
     const inviteLink = `${appBaseUrl(req)}/teams/${access.team.slug}/join?token=${encodeURIComponent(token)}`;
-    const html = `<div class="invite-section">
-      <div class="invite-link-group">
-        <input type="text" id="invite-link" readonly value="${escapeHtml(inviteLink)}" onclick="this.select()" />
-      </div>
-      <p class="inline-success" role="status">Invite link regenerated — old links no longer work.</p>
-    </div>`;
+    const html = await (<TeamInviteSection inviteLink={inviteLink} regenerated />);
     return new Response(html, { headers: { 'Content-Type': 'text/html' } });
   }
 
@@ -112,16 +132,9 @@ export async function handleExtraRoutes(
     const c = commentService.add(taskId, user.id, body);
     realtime.broadcastRefresh(access.board.id, user.id);
     const canModerate = teamService.isTeamAdmin(access.team.id, user.id);
-    const html = `<li id="comment-${c.id}" class="task-comment">
-      <strong>${escapeHtml(c.userName)}</strong>
-      <p>${escapeHtml(c.body)}</p>
-      <small>${c.createdAt.toLocaleString()}</small>
-      ${
-        canModerate || c.userId === user.id
-          ? `<button type="button" class="secondary outline comment-delete" hx-post="/comments/${c.id}/delete" hx-target="#comment-${c.id}" hx-swap="outerHTML" hx-confirm="Delete this comment?" aria-label="Delete comment">Delete</button>`
-          : ''
-      }
-    </li>`;
+    const html = await (
+      <TaskCommentItem comment={c} canDelete={canModerate || c.userId === user.id} />
+    );
     return new Response(html, {
       headers: { 'Content-Type': 'text/html', 'HX-Trigger': 'task-updated' },
     });
@@ -183,15 +196,8 @@ export async function handleExtraRoutes(
     labelService.addToTask(taskId, labelId);
     realtime.broadcastRefresh(access.board.id, user.id);
     const labels = labelService.listForTask(taskId);
-    const html = labels
-      .map(
-        (l) =>
-          `<span class="task-label" style="--label-color:${escapeHtml(l.color)};background:${escapeHtml(l.color)}">${escapeHtml(l.name)}
-            <button type="button" class="label-remove" hx-delete="/tasks/${taskId}/labels/${l.id}" hx-target="closest .task-label" hx-swap="outerHTML" aria-label="Remove label">×</button>
-          </span>`
-      )
-      .join('');
-    return new Response(`<div id="task-labels-list">${html}</div>`, {
+    const html = await (<TaskLabelsList taskId={taskId} labels={labels} />);
+    return new Response(html, {
       headers: { 'Content-Type': 'text/html', 'HX-Trigger': 'task-updated' },
     });
   }
@@ -230,11 +236,7 @@ export async function handleExtraRoutes(
     }
     const att = await attachmentService.add(taskId, user.id, file);
     realtime.broadcastRefresh(access.board.id, user.id);
-    const html = `<li id="att-${att.id}">
-      <a href="/attachments/${att.id}/download">${escapeHtml(att.filename)}</a>
-      <small>(${Math.round(att.sizeBytes / 1024)} KB)</small>
-      <button type="button" class="secondary" hx-delete="/attachments/${att.id}" hx-target="#att-${att.id}" hx-swap="outerHTML">Remove</button>
-    </li>`;
+    const html = await (<TaskAttachmentItem attachment={att} />);
     return new Response(html, { headers: { 'Content-Type': 'text/html' } });
   }
 
@@ -248,10 +250,14 @@ export async function handleExtraRoutes(
     const access = accessTask(att.taskId, user);
     if (access instanceof Response) return access;
     const file = Bun.file(attachmentPath(att.storedName));
+    if (!(await file.exists())) {
+      return new Response('Not found', { status: 404 });
+    }
     return new Response(file, {
       headers: {
-        'Content-Type': att.mimeType || 'application/octet-stream',
+        'Content-Type': safeAttachmentContentType(att.mimeType),
         'Content-Disposition': attachmentDisposition(att.filename),
+        'Cache-Control': 'private, no-store',
       },
     });
   }

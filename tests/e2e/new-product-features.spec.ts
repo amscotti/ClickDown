@@ -151,18 +151,17 @@ test.describe('Invite link regenerate', () => {
 
     await acceptNextDialog(page);
     await dialog.locator('button:has-text("Regenerate invite link")').click();
-    await expect(page.locator('.inline-success')).toContainText(/regenerated|no longer work/i, {
+    await expect(dialog.locator('.inline-success')).toContainText(/regenerated|no longer work/i, {
       timeout: 10000,
     });
 
-    // Re-open invite modal to read the stable regenerated link
-    await page
-      .locator('dialog[open] button:has-text("Done")')
-      .click()
-      .catch(() => {});
-    await page.click('text=Invite Members');
-    await expect(page.locator('dialog[open] #invite-link')).toBeVisible();
-    const newLink = await page.locator('#invite-link').inputValue();
+    // Verify in-place outerHTML swap of #invite-link-section preserved Copy button & outer #invite-section
+    await expect(dialog.locator('#invite-link')).toBeVisible();
+    await expect(dialog.locator('button:has-text("Copy")')).toBeVisible();
+    await expect(dialog).toContainText('Share this link');
+    await expect(dialog.locator('button:has-text("Regenerate invite link")')).toBeVisible();
+
+    const newLink = await dialog.locator('#invite-link').inputValue();
     expect(newLink).toContain('token=');
     const newToken = new URL(newLink).searchParams.get('token');
     expect(newToken).toBeTruthy();
