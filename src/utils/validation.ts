@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod';
-import { escapeHtml } from './html';
+import { renderInlineError } from '../components/error';
 import { createToastTrigger } from './http';
 
 export function validateBody<T>(
@@ -18,9 +18,7 @@ export function validateBody<T>(
         headers: { 'HX-Reswap': 'none', 'HX-Trigger': createToastTrigger('error', message) },
       });
     }
-    const errors = result.error.issues
-      .map((i) => `<p class="inline-error" role="alert">${escapeHtml(i.message)}</p>`)
-      .join('\n');
+    const errors = result.error.issues.map((i) => renderInlineError(i.message)).join('\n');
     return new Response(errors, {
       status: 400,
       headers: { 'Content-Type': 'text/html', 'HX-Reswap': 'innerHTML' },
@@ -31,5 +29,5 @@ export function validateBody<T>(
 
 /** Build a single escaped inline error paragraph for catch-block HTML responses. */
 export function errorHtml(message: string): string {
-  return `<p class="inline-error" role="alert">${escapeHtml(message)}</p>`;
+  return renderInlineError(message);
 }

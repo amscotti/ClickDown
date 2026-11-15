@@ -454,3 +454,190 @@ test.describe('Autosave on close', () => {
     await expect(page.locator('dialog[open] #taskTitleInput')).toHaveValue(`Escaped Title ${uid}`);
   });
 });
+
+test.describe('UI/UX & interaction regressions', () => {
+  test('indigo palette, header dropdown contrast, toolbar layout, drag handle, and unassigned card icon', async ({
+    page,
+  }) => {
+    const uid = Date.now() + Math.floor(Math.random() * 100000);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await setupBoard(page, uid, { withTask: true });
+
+    // Light-mode header user dropdown must not render white-on-white
+    const trigger = page.locator('header .user-dropdown-trigger');
+    await expect(trigger).toBeVisible();
+    const lightTriggerColor = await trigger.evaluate((el) => getComputedStyle(el).color);
+    expect(lightTriggerColor).not.toBe('rgb(255, 255, 255)');
+
+    // Dark-mode toggle updates theme attribute and keeps dropdown text light
+    await page.locator('#theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect
+      .poll(() => trigger.evaluate((el) => getComputedStyle(el).color))
+      .not.toBe(lightTriggerColor);
+    await page.locator('#theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    // Primary color token & modal submit button use ClickDown Indigo (#4f46e5)
+    const primaryToken = await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--pico-primary-background')
+        .trim()
+    );
+    expect(primaryToken.toLowerCase()).toBe('#4f46e5');
+
+    // Drag handle background is transparent and unassigned task card shows SVG placeholder left-aligned
+    const dragHandleBg = await page
+      .locator('.column-drag-handle')
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(dragHandleBg).toBe('rgba(0, 0, 0, 0)');
+
+    const taskCard = page.locator('.task-card').first();
+    await expect(taskCard).toBeVisible();
+    const cardStyles = await taskCard.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { textAlign: s.textAlign, backgroundColor: s.backgroundColor };
+    });
+    expect(cardStyles.textAlign).toBe('left');
+    expect(cardStyles.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    await expect(taskCard.locator('.avatar-placeholder-small svg')).toBeVisible();
+
+    // Desktop toolbar stays on a single horizontal row and Archived control has a 1px border
+    const searchInput = page.locator('.board-toolbar .board-search');
+    const archivedControl = page.locator('.board-toolbar :is(a, button):has-text("Archived")');
+    const selectControl = page.locator('.board-toolbar :is(a, button):has-text("Select")');
+    const editBoardControl = page.locator('.board-toolbar :is(a, button):has-text("Edit Board")');
+    await expect(searchInput).toBeVisible();
+    await expect(archivedControl).toBeVisible();
+    await expect(selectControl).toBeVisible();
+    await expect(editBoardControl).toBeVisible();
+
+    const searchBox = await searchInput.boundingBox();
+    const archivedBox = await archivedControl.boundingBox();
+    const selectBox = await selectControl.boundingBox();
+    const editBox = await editBoardControl.boundingBox();
+    if (!searchBox || !archivedBox || !selectBox || !editBox) {
+      throw new Error('Expected board toolbar controls to have layout boxes');
+    }
+    expect(searchBox.width).toBeLessThan(350);
+    expect(Math.abs(searchBox.y - archivedBox.y)).toBeLessThan(20);
+    expect(Math.abs(archivedBox.y - selectBox.y)).toBeLessThan(20);
+    expect(Math.abs(selectBox.y - editBox.y)).toBeLessThan(20);
+
+    const archivedBorder = await archivedControl.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { width: parseFloat(s.borderTopWidth), style: s.borderTopStyle };
+    });
+    expect(archivedBorder.width).toBeGreaterThanOrEqual(1);
+    expect(archivedBorder.style).not.toBe('none');
+  });
+
+  test('task detail modal close icon, autofocus, Write/Preview toggles, metadata, and no duplicate PATCH on close', async ({
+    page,
+  }) => {
+    const uid = Date.now() + Math.floor(Math.random() * 100000);
+    await setupBoard(page, uid, { withTask: true });
+
+    let descPatchCount = 0;
+    page.on('request', (req) => {
+      if (req.method() === 'PATCH' && /\/tasks\/[^/]+\/description$/.test(req.url())) {
+        descPatchCount++;
+      }
+    });
+
+    await page.locator('.task-card').first().click();
+    const modal = page.locator('dialog[open]');
+    await expect(modal).toBeVisible();
+
+    // Header close button uses Pico .close icon class and primary title input gets autofocus
+    const closeBtn = modal.locator('header button.close');
+    await expect(closeBtn).toBeVisible();
+    await expect(closeBtn).toHaveAttribute('aria-label', 'Close');
+    await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe('taskTitleInput');
+
+    // Only Write starts active (Indigo fill); Preview starts inactive and swaps cleanly on click
+    const writeBtn = modal.locator('button.md-toggle:has-text("Write")');
+    const previewBtn = modal.locator('button.md-toggle:has-text("Preview")');
+    await expect(writeBtn).toHaveClass(/\bactive\b/);
+    await expect(previewBtn).not.toHaveClass(/\bactive\b/);
+    const writeActiveBg = await writeBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(writeActiveBg).toBe('rgb(79, 70, 229)');
+
+    await previewBtn.click();
+    await expect(previewBtn).toHaveClass(/\bactive\b/);
+    await expect(writeBtn).not.toHaveClass(/\bactive\b/);
+    await writeBtn.click();
+    await expect(writeBtn).toHaveClass(/\bactive\b/);
+
+    // Metadata renders readable "Created by <name> on <date>"
+    await expect(modal.locator('.task-detail-meta')).toContainText(/Created by .+ on /);
+
+    // Dirty description flushes exactly once when clicking Close immediately (no blur wait)
+    descPatchCount = 0;
+    const descPatch1 = page.waitForResponse(
+      (res) => res.request().method() === 'PATCH' && /\/tasks\/[^/]+\/description$/.test(res.url())
+    );
+    await modal.locator('#taskDescriptionInput').fill(`Flush on close ${uid}`);
+    await closeBtn.click();
+    await descPatch1;
+    await expect(page.locator('dialog[open]')).toHaveCount(0, { timeout: 5000 });
+    expect(descPatchCount).toBe(1);
+
+    // Reopen: value persisted, and pre-saved change does NOT send a duplicate PATCH on Close
+    await page.locator('.task-card').first().click();
+    await expect(page.locator('dialog[open] #taskDescriptionInput')).toHaveValue(
+      `Flush on close ${uid}`
+    );
+
+    descPatchCount = 0;
+    const descPatch2 = page.waitForResponse(
+      (res) => res.request().method() === 'PATCH' && /\/tasks\/[^/]+\/description$/.test(res.url())
+    );
+    const descInput = page.locator('dialog[open] #taskDescriptionInput');
+    await descInput.fill(`Already saved ${uid}`);
+    await htmxTriggerChange(descInput);
+    await descPatch2;
+    expect(descPatchCount).toBe(1);
+
+    const dialogToast = page.locator('dialog[open] > .toast');
+    await expect(dialogToast).toBeVisible();
+    expect(await dialogToast.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
+
+    await page.locator('dialog[open] header button.close').click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0, { timeout: 5000 });
+    expect(descPatchCount).toBe(1);
+  });
+
+  test('rapid + Add Task typing keeps focus in description without defaultSettleDelay stealing focus', async ({
+    page,
+  }) => {
+    const uid = Date.now() + Math.floor(Math.random() * 100000);
+    await setupBoard(page, uid);
+
+    await page.locator('.kanban-column').first().locator('footer button').click();
+    const modal = page.locator('dialog[open]');
+    await expect(modal.locator('#taskTitle')).toBeVisible();
+
+    // Verify modal submit button renders ClickDown Indigo
+    const submitBg = await modal
+      .locator('button[type="submit"]')
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(submitBg).toBe('rgb(79, 70, 229)');
+
+    // Fill title and immediately fill description to verify autofocus settles synchronously
+    await modal.locator('#taskTitle').fill(`Rapid Title ${uid}`);
+    await modal.locator('#taskDescription').fill(`Rapid **markdown** body ${uid}`);
+    await modal.locator('button[type="submit"]').click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0, { timeout: 5000 });
+
+    const createdCard = page.locator('.task-card', { hasText: `Rapid Title ${uid}` });
+    await expect(createdCard).toBeVisible({ timeout: 10000 });
+    await createdCard.click();
+
+    await expect(page.locator('dialog[open] #taskTitleInput')).toHaveValue(`Rapid Title ${uid}`);
+    await expect(page.locator('dialog[open] #taskDescriptionInput')).toHaveValue(
+      `Rapid **markdown** body ${uid}`
+    );
+  });
+});

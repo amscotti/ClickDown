@@ -130,7 +130,7 @@ export async function handleRequest(
       type: 'application/javascript; charset=utf-8',
     },
     '/vendor/alpine.min.js': {
-      path: join(process.cwd(), 'node_modules', 'alpinejs', 'dist', 'cdn.min.js'),
+      path: join(process.cwd(), 'node_modules', '@alpinejs', 'csp', 'dist', 'cdn.min.js'),
       type: 'application/javascript; charset=utf-8',
     },
   };

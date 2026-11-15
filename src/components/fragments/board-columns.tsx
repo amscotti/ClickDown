@@ -1,5 +1,3 @@
-import { alpine } from '../../utils/html';
-
 interface BoardColumnsColumn {
   id: string;
   name: string;
@@ -29,11 +27,6 @@ export function BoardColumns({ boardBase, columns, tasksQuery, canAdmin }: Board
           class="kanban-column"
           data-column-id={column.id}
           data-wip-limit={column.wipLimit || 0}
-          {...alpine({
-            '@dragover': 'handleColumnDragOver($event)',
-            '@dragleave': 'handleColumnDragLeave($event)',
-            '@drop': 'handleColumnDrop($event)',
-          })}
         >
           <header
             class="column-header"
@@ -51,10 +44,6 @@ export function BoardColumns({ boardBase, columns, tasksQuery, canAdmin }: Board
                     tabindex="0"
                     aria-label="Drag to reorder column"
                     title="Drag to reorder column"
-                    {...alpine({
-                      '@dragstart': `handleColumnDragStart($event, '${column.id}')`,
-                      '@dragend': 'handleColumnDragEnd($event)',
-                    })}
                   >
                     ⋮⋮
                   </span>

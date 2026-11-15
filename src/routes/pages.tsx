@@ -9,8 +9,14 @@ import { teamService } from '../services/team.service';
 import { tokenService } from '../services/token.service';
 import { userService } from '../services/user.service';
 import { parseCookie } from '../utils/cookie';
-import { escapeHtml, externalOrigin } from '../utils/html';
-import { flashRedirect, parseFormData, requireUser, requireUserOrLogin } from '../utils/http';
+import { externalOrigin } from '../utils/html';
+import {
+  flashRedirect,
+  inlineErrorResponse,
+  parseFormData,
+  requireUser,
+  requireUserOrLogin,
+} from '../utils/http';
 import { logError } from '../utils/logger';
 import { renderMarkdown } from '../utils/markdown';
 import { checkRateLimit } from '../utils/rate-limit';
@@ -57,7 +63,7 @@ export async function handlePageRoutes(
     const tokens = tokenService.listForUser(user.id);
     const mcpUrl = `${externalOrigin(req)}/api/mcp`;
     const html = await (
-      <Layout title="Profile Settings" user={user}>
+      <Layout title="Profile Settings" user={user} scripts={['/js/forms.js']}>
         <ProfilePage user={user} tokens={tokens} mcpUrl={mcpUrl} />
       </Layout>
     );
@@ -81,7 +87,7 @@ export async function handlePageRoutes(
       const mcpUrl = `${externalOrigin(req)}/api/mcp`;
       // Re-render the profile page showing the new token exactly once.
       const html = await (
-        <Layout title="Profile Settings" user={user}>
+        <Layout title="Profile Settings" user={user} scripts={['/js/forms.js']}>
           <ProfilePage user={user} tokens={tokens} newToken={token} mcpUrl={mcpUrl} />
         </Layout>
       );
@@ -91,10 +97,7 @@ export async function handlePageRoutes(
     } catch (error) {
       logError('pages', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create token';
-      return new Response(`<p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>`, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html' },
-      });
+      return inlineErrorResponse(errorMessage);
     }
   }
 
@@ -143,11 +146,7 @@ export async function handlePageRoutes(
     } catch (error) {
       logError('pages', error);
       const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
-      const errorHtml = `<p class="inline-error" role="alert" style="margin-bottom: 1rem;">${escapeHtml(errorMessage)}</p>`;
-      return new Response(errorHtml, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html' },
-      });
+      return inlineErrorResponse(errorMessage, { style: 'margin-bottom: 1rem;' });
     }
   }
 

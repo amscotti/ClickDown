@@ -93,4 +93,60 @@ test.describe('Security features (new)', () => {
     const body = await res.text();
     expect(body).not.toContain('"name": "clickdown"');
   });
+
+  test('strict script-src CSP works cleanly with Alpine CSP and HTMX without violations', async ({
+    page,
+  }) => {
+    const cspViolations: string[] = [];
+    const pageErrors: string[] = [];
+
+    await page.addInitScript(() => {
+      const win = window as unknown as Record<string, string[]>;
+      win.__cspViolations = [];
+      document.addEventListener('securitypolicyviolation', (e) => {
+        win.__cspViolations?.push(`${e.violatedDirective}: ${e.blockedURI}`);
+      });
+    });
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    const homeRes = await page.goto('/');
+    expect(homeRes?.headers()['content-security-policy']).toMatch(/script-src 'self'(?:;|$)/);
+
+    // Exercise theme toggle via delegated listener
+    await page.click('#theme-toggle');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.click('#theme-toggle');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    // Exercise Alpine CSP registerForm reactivity
+    await page.goto('/register');
+    await page.fill('#password', 'Short1!');
+    await expect(page.locator('button[type="submit"]')).toBeDisabled();
+    await page.fill('#email', `csp-${Date.now()}@example.com`);
+    await page.fill('#displayName', 'CSP Tester');
+    await page.fill('#password', 'StrongPass1!');
+    await page.fill('#confirmPassword', 'StrongPass1!');
+    await expect(page.locator('button[type="submit"]')).toBeEnabled();
+
+    const uid = Date.now() + 1;
+    await setupBoard(page, uid, { withTask: true });
+
+    // Open task detail modal and toggle Alpine Write/Preview + Close
+    await page.locator('.task-card').first().click();
+    const modal = page.locator('dialog[open]');
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Preview' }).click();
+    await expect(modal.locator('.markdown-preview')).toBeVisible();
+    await modal.getByRole('button', { name: 'Write' }).click();
+    await expect(modal.locator('#taskDescriptionInput')).toBeVisible();
+    await modal.locator('.form-actions button:has-text("Close")').click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+
+    const violations = await page.evaluate(
+      () => (window as unknown as Record<string, string[]>).__cspViolations || []
+    );
+    cspViolations.push(...violations);
+    expect(cspViolations).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
 });

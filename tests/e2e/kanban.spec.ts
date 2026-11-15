@@ -52,7 +52,7 @@ test.describe('ClickDown E2E Kanban Workflow', () => {
     // Should redirect to the Team page
     await expect(page).toHaveURL(/\/teams\/e2e-team-/);
     await expect(page.locator('.team-header h1')).toContainText(teamName);
-    await expect(page.locator('.team-meta')).toContainText('1 members');
+    await expect(page.locator('.team-meta')).toContainText('1 member');
     await expect(page.locator('.team-meta')).toContainText('0 boards');
 
     // 4. Create a Board

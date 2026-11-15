@@ -1,5 +1,41 @@
 import type { PropsWithChildren } from '@kitajs/html';
 
+export function InlineError({ message, style }: { message: string; style?: string }) {
+  return (
+    <p class="inline-error" role="alert" style={style} safe>
+      {message}
+    </p>
+  );
+}
+
+/** Synchronously render an escaped inline error paragraph for non-async validators. */
+export function renderInlineError(message: string, style?: string): string {
+  const html = <InlineError message={message} style={style} />;
+  if (typeof html !== 'string') {
+    throw new Error('InlineError unexpectedly returned a Promise');
+  }
+  return html;
+}
+
+export function ErrorArticle({
+  message,
+  showBackButton = false,
+}: {
+  message: string;
+  showBackButton?: boolean;
+}) {
+  return (
+    <article class="error-message">
+      <InlineError message={message} />
+      {showBackButton ? (
+        <button type="button" data-action="history-back" class="secondary">
+          Go Back
+        </button>
+      ) : null}
+    </article>
+  );
+}
+
 export function ErrorPage({ error }: PropsWithChildren<{ error?: string }>) {
   const isNotFound = typeof error === 'string' && error.includes('not found');
   return (

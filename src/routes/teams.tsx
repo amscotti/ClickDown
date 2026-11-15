@@ -13,15 +13,16 @@ import { TeamRole } from '../models/team.model';
 import { disconnectUserFromTeam } from '../realtime/handlers';
 import { createTeamSchema, joinTeamSchema, roleChangeSchema, updateTeamSchema } from '../schemas';
 import { teamService } from '../services/team.service';
-import { escapeHtml, externalOrigin } from '../utils/html';
+import { accessTeamAdmin, accessTeamMember } from '../utils/access';
+import { externalOrigin } from '../utils/html';
 import {
   clientIp,
+  errorArticleResponse,
   flashRedirect,
+  inlineErrorResponse,
   parseFormData,
   requireUser,
   requireUserOrLogin,
-  resolveTeamAccess,
-  resolveTeamAdminAccess,
 } from '../utils/http';
 import { logError } from '../utils/logger';
 import { checkRateLimit } from '../utils/rate-limit';
@@ -88,20 +89,12 @@ export async function handleTeamRoutes(
       const team = teamService.getBySlug(slug);
 
       if (!teamService.validateInviteToken(team.id, token)) {
-        const errors = `<p class="inline-error" role="alert">Invalid or expired invite link</p>`;
-        return new Response(errors, {
-          status: 403,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return inlineErrorResponse('Invalid or expired invite link', { status: 403 });
       }
 
       // Check if already a member
       if (teamService.isTeamMember(team.id, user.id)) {
-        const errors = `<p class="inline-error" role="alert">You are already a member of this team</p>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return inlineErrorResponse('You are already a member of this team');
       }
 
       // Add user as member
@@ -130,11 +123,7 @@ export async function handleTeamRoutes(
     } catch (error) {
       logError('teams', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to join team';
-      const errors = `<p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>`;
-      return new Response(errors, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html' },
-      });
+      return inlineErrorResponse(errorMessage);
     }
   }
 
@@ -146,7 +135,7 @@ export async function handleTeamRoutes(
     const teamSlug = url.pathname.split('/')[2];
     if (!teamSlug) return null;
 
-    const access = resolveTeamAccess(teamSlug, user);
+    const access = accessTeamMember(teamSlug, user);
     if (access instanceof Response) return access;
     const { team } = access;
 
@@ -304,7 +293,7 @@ export async function handleTeamRoutes(
     const teamSlug = url.pathname.split('/')[2];
     if (!teamSlug) return null;
 
-    const access = resolveTeamAccess(teamSlug, user);
+    const access = accessTeamMember(teamSlug, user);
     if (access instanceof Response) return access;
     const { team } = access;
 
@@ -349,14 +338,7 @@ export async function handleTeamRoutes(
     } catch (error) {
       logError('teams', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create team';
-      const errors = `<article class="error-message">
-          <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-          <button onclick="history.back()" class="secondary">Go Back</button>
-        </article>`;
-      return new Response(errors, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html' },
-      });
+      return errorArticleResponse(errorMessage, { showBackButton: true });
     }
   }
 
@@ -368,7 +350,7 @@ export async function handleTeamRoutes(
     const teamSlug = url.pathname.split('/')[2];
     if (!teamSlug) return null;
 
-    const access = resolveTeamAdminAccess(teamSlug, user);
+    const access = accessTeamAdmin(teamSlug, user);
     if (access instanceof Response) return access;
 
     const { team } = access;
@@ -392,7 +374,7 @@ export async function handleTeamRoutes(
     const teamSlug = url.pathname.split('/')[2];
     if (!teamSlug) return null;
 
-    const access = resolveTeamAdminAccess(teamSlug, user);
+    const access = accessTeamAdmin(teamSlug, user);
     if (access instanceof Response) return access;
     const { team } = access;
 
@@ -409,11 +391,7 @@ export async function handleTeamRoutes(
     } catch (error) {
       logError('teams', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update team';
-      const errors = `<article class="error-message"><p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p></article>`;
-      return new Response(errors, {
-        status: 400,
-        headers: { 'Content-Type': 'text/html' },
-      });
+      return errorArticleResponse(errorMessage);
     }
   }
 
@@ -450,11 +428,7 @@ export async function handleTeamRoutes(
       } catch (error) {
         logError('teams', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to delete team';
-        const errors = `<article class="error-message"><p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p></article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage);
       }
     }
   }

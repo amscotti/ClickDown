@@ -1,7 +1,8 @@
 /* ClickDown Custom Styles */
 
 /* Base Theme & Variables */
-:root {
+:root:not([data-theme="dark"]),
+html[data-theme="light"] {
   /* Typography */
   --pico-font-family: "Outfit", "Inter", system-ui, -apple-system, sans-serif;
   --pico-font-size: 15px;
@@ -21,8 +22,12 @@
 
   --pico-primary: var(--primary-600);
   --pico-primary-background: var(--primary-600);
+  --pico-primary-border: var(--primary-600);
+  --pico-primary-underline: rgba(79, 70, 229, 0.5);
   --pico-primary-hover: var(--primary-700);
-  --pico-primary-focus: rgba(79, 70, 229, 0.15);
+  --pico-primary-hover-background: var(--primary-700);
+  --pico-primary-hover-border: var(--primary-700);
+  --pico-primary-focus: rgba(79, 70, 229, 0.2);
   --pico-primary-inverse: #fff;
 
   /* Neutral Colors (Slate) */
@@ -79,11 +84,22 @@
 
 /* Dark Theme Overrides */
 [data-theme="dark"] {
+  --pico-primary: var(--primary-500);
+  --pico-primary-background: var(--primary-600);
+  --pico-primary-border: var(--primary-600);
+  --pico-primary-underline: rgba(129, 140, 248, 0.5);
+  --pico-primary-hover: var(--primary-400);
+  --pico-primary-hover-background: var(--primary-500);
+  --pico-primary-hover-border: var(--primary-500);
+  --pico-primary-focus: rgba(99, 102, 241, 0.25);
+  --pico-primary-inverse: #fff;
+
   --pico-background-color: #070b13;
   --pico-color: #f1f5f9;
   --pico-muted-color: #94a3b8;
   --pico-border-color: #1e293b;
   --pico-card-background-color: #0f172a;
+  --pico-card-border-color: #1e293b;
   --pico-form-element-background-color: #0f172a;
   --pico-form-element-border-color: #334155;
 
@@ -93,6 +109,10 @@
 }
 
 /* Global Styles */
+html {
+  scroll-padding-top: calc(var(--header-height) + 1rem);
+}
+
 body {
   font-family: var(--pico-font-family);
   background-color: var(--slate-50);
@@ -147,8 +167,44 @@ header nav ul {
   margin: 0;
 }
 
+header nav ul:last-child {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 header nav li {
   padding: 0;
+}
+
+header nav button.user-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--pico-border-radius);
+  padding: 0.25rem 0.5rem;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  --pico-color: var(--slate-800);
+  color: var(--slate-800);
+  box-shadow: none;
+}
+
+[data-theme="dark"] header nav button.user-dropdown-trigger {
+  --pico-color: var(--slate-100);
+  color: var(--slate-100);
+}
+
+header nav button.user-dropdown-trigger:hover {
+  background: var(--slate-100);
+}
+
+[data-theme="dark"] header nav button.user-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Brand */
@@ -174,20 +230,42 @@ input[type="reset"] {
 
 button.secondary,
 [role="button"].secondary {
-  background-color: var(--pico-background-color);
-  border-color: var(--pico-border-color);
-  color: var(--pico-color);
+  --pico-background-color: var(--pico-card-background-color);
+  --pico-border-color: var(--slate-300);
+  --pico-color: var(--slate-700);
+  background-color: var(--pico-card-background-color);
+  border-color: var(--slate-300);
+  color: var(--slate-700);
 }
 
 button.secondary:hover,
 [role="button"].secondary:hover {
+  --pico-background-color: var(--slate-100);
+  --pico-border-color: var(--slate-400);
+  --pico-color: var(--slate-900);
   background-color: var(--slate-100);
-  border-color: var(--slate-300);
-  color: var(--pico-color);
+  border-color: var(--slate-400);
+  color: var(--slate-900);
 }
 
-[data-theme="dark"] button.secondary:hover {
+[data-theme="dark"] button.secondary,
+[data-theme="dark"] [role="button"].secondary {
+  --pico-background-color: var(--slate-800);
+  --pico-border-color: var(--slate-700);
+  --pico-color: var(--slate-200);
+  background-color: var(--slate-800);
+  border-color: var(--slate-700);
+  color: var(--slate-200);
+}
+
+[data-theme="dark"] button.secondary:hover,
+[data-theme="dark"] [role="button"].secondary:hover {
+  --pico-background-color: var(--slate-700);
+  --pico-border-color: var(--slate-600);
+  --pico-color: #fff;
   background-color: var(--slate-700);
+  border-color: var(--slate-600);
+  color: #fff;
 }
 
 /* Main Container */
@@ -459,12 +537,13 @@ main.container {
   justify-content: flex-end;
 }
 
-.board-search {
+.board-toolbar input[type="search"].board-search {
   margin: 0;
   width: 220px;
   max-width: 40vw;
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem 0.75rem 0.4rem 2.25rem;
   font-size: 0.85rem;
+  height: auto;
 }
 
 .search-spinner {
@@ -490,6 +569,30 @@ main.container {
   width: auto;
   border-radius: var(--pico-border-radius);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+}
+a.board-btn.outline.secondary {
+  border: 1px solid var(--slate-300);
+  color: var(--slate-700);
+  background: var(--pico-card-background-color);
+}
+a.board-btn.outline.secondary:hover {
+  background: var(--slate-100);
+  border-color: var(--slate-400);
+  color: var(--slate-900);
+  text-decoration: none;
+}
+[data-theme="dark"] a.board-btn.outline.secondary {
+  border-color: var(--slate-700);
+  color: var(--slate-200);
+  background: var(--slate-800);
+}
+[data-theme="dark"] a.board-btn.outline.secondary:hover {
+  background: var(--slate-700);
+  border-color: var(--slate-600);
+  color: #fff;
 }
 .board-btn.danger {
   color: var(--color-danger);
@@ -549,7 +652,8 @@ main.container {
   .board-toolbar {
     justify-content: flex-start;
   }
-  .board-search {
+  .board-toolbar .board-search,
+  .board-toolbar input[type="search"].board-search {
     width: 100%;
     max-width: none;
     order: -1;
@@ -670,6 +774,10 @@ main.container {
   color: var(--pico-color);
 }
 
+[data-theme="dark"] .column-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Column Tasks Area */
 .column-tasks {
   flex: 1;
@@ -702,6 +810,10 @@ main.container {
   border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+[data-theme="dark"] .column-footer {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
 .column-footer button {
   width: 100%;
   background: transparent;
@@ -719,6 +831,9 @@ main.container {
 
 /* Task Card */
 .task-card {
+  --pico-background-color: var(--pico-card-background-color);
+  --pico-border-color: var(--pico-card-border-color);
+  --pico-color: var(--slate-800);
   background: var(--pico-card-background-color);
   border: 1px solid var(--pico-border-color);
   border-radius: 0.5rem;
@@ -728,6 +843,16 @@ main.container {
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  color: var(--slate-800);
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+
+[data-theme="dark"] .task-card {
+  --pico-color: #f1f5f9;
+  color: #f1f5f9;
+  border-color: var(--slate-700);
 }
 
 .task-card:hover {
@@ -894,10 +1019,20 @@ main.container {
   color: var(--pico-primary);
 }
 
-.column-drag-handle {
+.kanban-column .column-header .column-drag-handle[role="button"] {
   cursor: grab;
   color: var(--pico-muted-color);
-  opacity: 0.3;
+  --pico-color: var(--pico-muted-color);
+  background: transparent;
+  border: none;
+  padding: 0.1rem 0.25rem;
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  opacity: 0.35;
   margin-right: 0.25rem;
   font-size: 0.9rem;
   user-select: none;
@@ -987,6 +1122,11 @@ main.container {
   font-size: 0.75rem;
 }
 
+[data-theme="dark"] .avatar-placeholder-small {
+  background: var(--slate-700);
+  color: var(--slate-400);
+}
+
 /* Dragging States */
 .task-card.dragging {
   opacity: 0.6;
@@ -1049,6 +1189,15 @@ dialog footer {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* Keep modal-hosted toasts out of dialog flex flow so mounting one never shifts buttons */
+dialog > .toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 1000;
+  margin: 0;
 }
 
 .toast {
@@ -1199,6 +1348,7 @@ html body header nav ul li div.user-dropdown-container div.user-dropdown-menu ul
   padding: 0;
 }
 
+html body header nav ul li div.user-dropdown-container div.user-dropdown-menu ul li a.dropdown-item,
 html
   body
   header
@@ -1209,7 +1359,7 @@ html
   div.user-dropdown-menu
   ul
   li
-  a.dropdown-item {
+  button.dropdown-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1217,11 +1367,28 @@ html
   text-decoration: none;
   font-size: 0.9rem;
   border-radius: 4px;
-  color: var(--pico-color);
+  --pico-color: var(--slate-800);
+  color: var(--slate-800);
   background: transparent;
+  border: none;
+  box-shadow: none;
   transition: all 0.15s ease;
   width: 100%;
   box-sizing: border-box;
+  text-align: left;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+[data-theme="dark"]
+  header
+  nav
+  div.user-dropdown-container
+  div.user-dropdown-menu
+  button.dropdown-item,
+[data-theme="dark"] header nav div.user-dropdown-container div.user-dropdown-menu a.dropdown-item {
+  --pico-color: var(--slate-100);
+  color: var(--slate-100);
 }
 
 html
@@ -1234,7 +1401,18 @@ html
   div.user-dropdown-menu
   ul
   li
-  a.dropdown-item:hover {
+  a.dropdown-item:hover,
+html
+  body
+  header
+  nav
+  ul
+  li
+  div.user-dropdown-container
+  div.user-dropdown-menu
+  ul
+  li
+  button.dropdown-item:hover {
   background-color: var(--slate-100);
   color: var(--slate-900);
 }
@@ -1250,7 +1428,19 @@ html
   div.user-dropdown-menu
   ul
   li
-  a.dropdown-item:hover {
+  a.dropdown-item:hover,
+[data-theme="dark"]
+  html
+  body
+  header
+  nav
+  ul
+  li
+  div.user-dropdown-container
+  div.user-dropdown-menu
+  ul
+  li
+  button.dropdown-item:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
@@ -1265,8 +1455,20 @@ html
   div.user-dropdown-menu
   ul
   li
-  a.dropdown-item.danger {
-  color: var(--pico-color-error);
+  a.dropdown-item.danger,
+html
+  body
+  header
+  nav
+  ul
+  li
+  div.user-dropdown-container
+  div.user-dropdown-menu
+  ul
+  li
+  button.dropdown-item.danger {
+  --pico-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 html
@@ -1279,15 +1481,28 @@ html
   div.user-dropdown-menu
   ul
   li
-  a.dropdown-item.danger:hover {
-  background-color: rgba(231, 76, 60, 0.1);
-  color: var(--pico-color-error);
+  a.dropdown-item.danger:hover,
+html
+  body
+  header
+  nav
+  ul
+  li
+  div.user-dropdown-container
+  div.user-dropdown-menu
+  ul
+  li
+  button.dropdown-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
 }
 
 /* Modal and Close Button Upgrades */
 html body dialog article {
   position: relative;
   max-height: 90vh;
+  max-width: 640px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1302,6 +1517,9 @@ html body dialog article .task-detail-content {
   overflow-y: auto;
   padding-right: 8px;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 html body dialog article .task-detail-content::-webkit-scrollbar {
@@ -1661,7 +1879,8 @@ html body dialog article .form-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--pico-border-color);
@@ -1680,8 +1899,8 @@ html body dialog article .form-actions button,
 html body dialog article .form-actions input[type="submit"] {
   margin: 0;
   width: auto;
-  min-width: 100px;
-  padding: 0.5rem 1.25rem;
+  min-width: auto;
+  padding: 0.45rem 0.9rem;
   font-size: 0.9rem;
   font-weight: 500;
   height: auto;
@@ -2608,10 +2827,13 @@ html body dialog article .form-actions .contrast.danger:hover {
   gap: 0.25rem;
 }
 
-.task-detail-field label {
+.task-detail-field label,
+.task-detail-field .field-heading {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--pico-muted-color);
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .task-detail-field input,
@@ -2688,8 +2910,14 @@ html body dialog article .form-actions .contrast.danger:hover {
   opacity: 0;
   transition: opacity 0.15s ease;
 }
-.checklist-item:hover .checklist-delete-form {
+.checklist-item:hover .checklist-delete-form,
+.checklist-item:focus-within .checklist-delete-form {
   opacity: 1;
+}
+@media (hover: none) {
+  .checklist-delete-form {
+    opacity: 0.75;
+  }
 }
 .checklist-delete {
   margin: 0;
@@ -2756,26 +2984,35 @@ html body dialog article .form-actions .contrast.danger:hover {
 }
 
 /* Write/Preview toggle for the markdown description field */
-.md-toggle-group {
+.md-toggle-group[role="group"] {
   display: inline-flex;
+  width: auto;
+  align-self: flex-start;
   border: 1px solid var(--pico-border-color);
   border-radius: 0.375rem;
   overflow: hidden;
+  margin-bottom: 0.5rem;
+  box-shadow: none;
 }
-.md-toggle {
+.md-toggle-group[role="group"] > button.md-toggle {
+  flex: 0 0 auto;
+  width: auto;
   background: transparent;
   border: none;
-  padding: 0.2rem 0.7rem;
-  font-size: 0.78rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--pico-muted-color);
+  --pico-color: var(--pico-muted-color);
   cursor: pointer;
   margin: 0;
   border-radius: 0;
+  box-shadow: none;
 }
-.md-toggle.active {
+.md-toggle-group[role="group"] > button.md-toggle.active {
   background: var(--pico-primary);
   color: #fff;
+  --pico-color: #fff;
 }
 
 /* Rendered markdown preview */

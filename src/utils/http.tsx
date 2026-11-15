@@ -1,7 +1,6 @@
+import { ErrorArticle, InlineError } from '../components/error';
 import type { AuthUser } from '../middleware/auth';
 import { getSessionFromRequest } from '../middleware/auth';
-import type { Team } from '../models/team.model';
-import { teamService } from '../services/team.service';
 
 // ─── Form Parsing ────────────────────────────────────────────────────────────
 
@@ -90,36 +89,6 @@ export function requireUserOrLogin(req: Request): AuthUser | Response {
   return user;
 }
 
-export function resolveTeamAccess(
-  teamSlug: string,
-  user: AuthUser
-): { team: Team; user: AuthUser } | Response {
-  try {
-    const team = teamService.getBySlug(teamSlug);
-    if (!teamService.isTeamMember(team.id, user.id)) {
-      return new Response('Access Denied', { status: 403 });
-    }
-    return { team, user };
-  } catch {
-    return new Response('Team not found', { status: 404 });
-  }
-}
-
-export function resolveTeamAdminAccess(
-  teamSlug: string,
-  user: AuthUser
-): { team: Team; user: AuthUser } | Response {
-  try {
-    const team = teamService.getBySlug(teamSlug);
-    if (!teamService.isTeamAdmin(team.id, user.id)) {
-      return new Response('Access Denied', { status: 403 });
-    }
-    return { team, user };
-  } catch {
-    return new Response('Team not found', { status: 404 });
-  }
-}
-
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
 export function clientIp(req: Request): string {
@@ -191,5 +160,29 @@ export function serveAvatar(url: URL): Response {
       'Content-Type': 'image/svg+xml',
       'Cache-Control': 'public, max-age=86400',
     },
+  });
+}
+
+// ─── HTML Error Response Helpers ─────────────────────────────────────────────
+
+export async function inlineErrorResponse(
+  message: string,
+  opts?: { status?: number; style?: string; headers?: Record<string, string> }
+): Promise<Response> {
+  const html = await (<InlineError message={message} style={opts?.style} />);
+  return new Response(html, {
+    status: opts?.status ?? 400,
+    headers: { 'Content-Type': 'text/html', ...opts?.headers },
+  });
+}
+
+export async function errorArticleResponse(
+  message: string,
+  opts?: { status?: number; showBackButton?: boolean }
+): Promise<Response> {
+  const html = await (<ErrorArticle message={message} showBackButton={opts?.showBackButton} />);
+  return new Response(html, {
+    status: opts?.status ?? 400,
+    headers: { 'Content-Type': 'text/html' },
   });
 }

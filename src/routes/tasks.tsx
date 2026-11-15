@@ -21,9 +21,9 @@ import { labelService } from '../services/label.service';
 import { taskService } from '../services/task.service';
 import { teamService } from '../services/team.service';
 import { formatDateOnly, isDateOverdue, toDateOnly } from '../utils/date';
-import { escapeHtml } from '../utils/html';
 import {
   createToastTrigger,
+  errorArticleResponse,
   flashRedirect,
   parseFormData,
   requireUser,
@@ -123,20 +123,12 @@ export async function handleTaskRoutes(
         // Verify column belongs to this board
         const column = boardService.getColumnById(input.columnId);
         if (column.boardId !== board.id) {
-          const errors = `<article class="error-message"><p class="inline-error" role="alert">Invalid column</p></article>`;
-          return new Response(errors, {
-            status: 400,
-            headers: { 'Content-Type': 'text/html' },
-          });
+          return await errorArticleResponse('Invalid column');
         }
 
         // Assignee (if any) must be a member of this team
         if (input.assigneeId && !teamService.isTeamMember(team.id, input.assigneeId)) {
-          const errors = `<article class="error-message"><p class="inline-error" role="alert">Assignee must be a team member</p></article>`;
-          return new Response(errors, {
-            status: 400,
-            headers: { 'Content-Type': 'text/html' },
-          });
+          return await errorArticleResponse('Assignee must be a team member');
         }
 
         // Create task
@@ -158,14 +150,7 @@ export async function handleTaskRoutes(
       } catch (error) {
         logError('tasks', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }
@@ -760,14 +745,7 @@ export async function handleTaskRoutes(
       } catch (error) {
         logError('tasks', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to delete task';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }

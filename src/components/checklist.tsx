@@ -17,7 +17,9 @@ export function ChecklistSection({
   return (
     <div id={`checklist-section-${taskId}`} {...(swapOob ? { 'hx-swap-oob': 'true' } : {})}>
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="margin-bottom:0;">Checklist</span>
+        <span class="field-heading" style="margin-bottom:0;">
+          Checklist
+        </span>
         <small class="checklist-progress-label">
           {done}/{checklist.length}
         </small>
@@ -72,7 +74,7 @@ export function ChecklistItem({
           id={`checklist-item-${item.id}`}
           name="completed"
           checked={item.completed}
-          onchange="this.form.requestSubmit()"
+          data-submit-on-change
           aria-label="Toggle complete"
         />
       </form>

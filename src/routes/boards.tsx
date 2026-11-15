@@ -20,8 +20,8 @@ import {
 import { boardService } from '../services/board.service';
 import { taskService } from '../services/task.service';
 import { teamService } from '../services/team.service';
-import { escapeHtml } from '../utils/html';
 import {
+  errorArticleResponse,
   flashRedirect,
   parseFormData,
   requireUser,
@@ -108,14 +108,7 @@ export async function handleBoardRoutes(
       } catch (error) {
         logError('boards', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to create board';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }
@@ -306,7 +299,7 @@ export async function handleBoardRoutes(
         }
 
         const html = await (
-          <Layout title={board.name} user={user}>
+          <Layout title={board.name} user={user} scripts={['/js/board.js']}>
             <BoardPage
               board={board}
               teamSlug={teamSlug}
@@ -507,14 +500,7 @@ export async function handleBoardRoutes(
       } catch (error) {
         logError('boards', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to create column';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }
@@ -608,14 +594,7 @@ export async function handleBoardRoutes(
       } catch (error) {
         logError('boards', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to update column';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }
@@ -666,14 +645,7 @@ export async function handleBoardRoutes(
       } catch (error) {
         logError('boards', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to delete column';
-        const errors = `<article class="error-message">
-            <p class="inline-error" role="alert">${escapeHtml(errorMessage)}</p>
-            <button onclick="history.back()" class="secondary">Go Back</button>
-          </article>`;
-        return new Response(errors, {
-          status: 400,
-          headers: { 'Content-Type': 'text/html' },
-        });
+        return errorArticleResponse(errorMessage, { showBackButton: true });
       }
     }
   }

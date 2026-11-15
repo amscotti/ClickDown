@@ -50,7 +50,8 @@ export function TeamPage({
             <h1 safe>{team.name}</h1>
             {team.description ? <p safe>{team.description}</p> : null}
             <small class="team-meta">
-              {memberCount} members · {boardCount} boards
+              {memberCount} {memberCount === 1 ? 'member' : 'members'} · {boardCount}{' '}
+              {boardCount === 1 ? 'board' : 'boards'}
             </small>
           </div>
           {canAdmin ? (
@@ -96,7 +97,9 @@ export function TeamPage({
                   <a href={`/teams/${team.slug}/boards/${board.slug}`} class="board-card">
                     <h3 safe>{board.name}</h3>
                     {board.description ? <p safe>{board.description}</p> : null}
-                    <small>{board.columnCount} columns</small>
+                    <small>
+                      {board.columnCount} {board.columnCount === 1 ? 'column' : 'columns'}
+                    </small>
                   </a>
                 ))}
                 {canAdmin ? (

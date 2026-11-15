@@ -1,5 +1,5 @@
 # ── Stage 1: Production-only dependencies ─────────────────────────────────────
-FROM oven/bun:1.3.14-debian@sha256:9dba1a1b43ce28c9d7931bfc4eb00feb63b0114720a0277a8f939ae4dfc9db6f AS proddeps
+FROM oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS proddeps
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile --production
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
-FROM oven/bun:1.3.14-debian@sha256:9dba1a1b43ce28c9d7931bfc4eb00feb63b0114720a0277a8f939ae4dfc9db6f AS runtime
+FROM oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS runtime
 
 WORKDIR /app
 

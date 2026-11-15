@@ -40,8 +40,7 @@ export function safeRedirectPath(path: string | null | undefined, fallback = '/d
 }
 
 /**
- * Security headers for the fully local runtime asset policy. Inline scripts
- * and Alpine expressions still require unsafe-inline/unsafe-eval for now.
+ * Security headers for the fully local runtime asset policy with strict script-src 'self'.
  */
 export function securityHeaders(): Record<string, string> {
   return {
@@ -50,7 +49,7 @@ export function securityHeaders(): Record<string, string> {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'Content-Security-Policy':
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'",
   };
 }
 
